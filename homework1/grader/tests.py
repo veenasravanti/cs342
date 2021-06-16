@@ -3,7 +3,7 @@ EDIT THIS FILE AT YOUR OWN RISK!
 It will not ship with your code, editing it will only change the test cases locally, and might make you fail our
 remote tests.
 """
-import torch1
+import torch
 import torch.nn.functional as F
 
 from .grader import Grader, Case, MultiCase

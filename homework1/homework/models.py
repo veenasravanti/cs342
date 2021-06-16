@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import csv
+import sys
 
 import torchvision
 from PIL import Image
@@ -9,68 +10,43 @@ from torchvision import transforms
 
 class ClassificationLoss(torch.nn.Module):
     def forward(self, input, target):
-        """
-        Your code here
-
-        Compute mean(-log(softmax(input)_label))
-
-        @input:  torch.Tensor((B,C))
-        @target: torch.Tensor((B,), dtype=torch.int64)
-
-        @return:  torch.Tensor((,))
-
-        Hint: Don't be too fancy, this is a one-liner
-        """
-        raise NotImplementedError('ClassificationLoss.forward')
+        # inpSoftmax=torch.nn.functional.log_softmax(input)
+        # output=torch.nn.functional.nll_loss(inpSoftmax,target)
+        loss=torch.nn.CrossEntropyLoss()
+        output=loss(input,target)
+        return output
 
 
 class LinearClassifier(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        """
-        dataset_path="C:\\Veena\\UT_MSDS\\395_DL\\hw1\\hw1\\homework1\\"
-        with open(dataset_path+'data\\valid\\labels.csv') as f:
-            data = csv.reader(f)
-            next(data)
-            self.data = list(data)
-            for x in self.data:
-                pic=Image.Open(dataset_path+"\\"+x[0])
-                tensor = torchvision.transforms.ToTensor()(pic)
-        """
-        print("From Linear Classification")
-        self.input_size=3*64*64
-        self.linear1=torch.nn.Linear(self.input_size,1)
-        self.activation=torch.nn.ReLu()
-
+        input_size=64*64*3
+        output_size=6
+        self.linearLayer=torch.nn.Linear(input_size,output_size)
 
     def forward(self, x):
-        """
-        Your forward function receives a (B,3,64,64) tensor as an input and should return a (B,6) torch.Tensor (one value per class).
-        """
-
-        y=linear1(x)
-
-        return self.linear1(self.activation(self.linear1(x.size(0),-1)))
+        input=x.view(x.size(0),-1)
+        return self.linearLayer(input)
 
 
 class MLPClassifier(torch.nn.Module):
     def __init__(self):
         super().__init__()
 
-        """
-        Your code here
-        """
-        raise NotImplementedError('MLPClassifier.__init__')
+        input_size = 64 * 64 * 3
+        output_size = 6
+        hidden_size=100
+        self.linearLayer = torch.nn.Linear(input_size, hidden_size)
+        self.linearLayer2= torch.nn.Linear(hidden_size, output_size)
+        self.activationLayer=torch.nn.ReLU()
+
+
+
 
     def forward(self, x):
-        """
-        Your code here
 
-        @x: torch.Tensor((B,3,64,64))
-        @return: torch.Tensor((B,6))
-        """
-        raise NotImplementedError('MLPClassifier.forward')
-
+        input = x.view(x.size(0), -1)
+        return self.linearLayer2(self.activationLayer(self.linearLayer(input)))
 
 model_factory = {
     'linear': LinearClassifier,

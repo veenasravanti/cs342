@@ -1,5 +1,6 @@
 import torchvision
 from PIL import Image
+from pathlib import Path
 import os
 
 
@@ -10,12 +11,7 @@ LABEL_NAMES = ['background', 'kart', 'pickup', 'nitro', 'bomb', 'projectile']
 
 class SuperTuxDataset(Dataset):
     def __init__(self, dataset_path):
-        print(LABEL_NAMES[0])
-        os.chdir("..")
-        currentpath=os.getcwd()
-        dataset_path=currentpath+"\\"+dataset_path
-
-        with open(dataset_path+'\labels.csv') as f:
+        with open(os.path.join(dataset_path,"labels.csv")) as f:
             data=csv.reader(f)
             next(data)
             self.data =list(data)
@@ -28,7 +24,8 @@ class SuperTuxDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        pic = Image.open(self.path+"\\"+self.data[idx][0])
+        # pic = Image.open(self.path+"\\"+self.data[idx][0])
+        pic= Image.open(os.path.join(self.path, self.data[idx][0]))
         tensor = torchvision.transforms.ToTensor()(pic)
         label= {
             LABEL_NAMES[0]: 0,

@@ -1,6 +1,6 @@
 import argparse
 import matplotlib.pyplot as plt
-from homework.utils import LABEL_NAMES, SuperTuxDataset
+from .utils import LABEL_NAMES, SuperTuxDataset
 
 
 def visualize_data(args):
