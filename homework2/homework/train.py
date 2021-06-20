@@ -22,7 +22,6 @@ def train(args):
         for img, label in  tl_load:
 
           output=model.forward(img)
-                    print(output)  
           loss=loss(output,label)
           optimiz.zero_grad()
             # running_loss += loss.item()

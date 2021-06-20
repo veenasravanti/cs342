@@ -3,7 +3,7 @@ import torch
 
 class CNNClassifier(torch.nn.Module):
     class Block(torch.nn.Module):
-         def __init__(self, n_input, n_output, stride=1):
+      def __init__(self, n_input, n_output, stride=1):
                 super().__init__()
                 self.net = torch.nn.Sequential(
                   torch.nn.Conv2d(n_input, n_output, kernel_size=3, padding=1, stride=stride),
@@ -13,9 +13,10 @@ class CNNClassifier(torch.nn.Module):
                 )
 
 
-          def forward(self, x):
-       return(self.network(x))
-     def __init__(self, layers=[32,64,128], n_input_channels=3):
+      def forward(self, x):
+              return(self.net(x))
+
+    def __init__(self, layers=[32,64,128], n_input_channels=3):
             super().__init__()
             L = [torch.nn.Conv2d(n_input_channels, 32, kernel_size=7, padding=3, stride=2),
                  torch.nn.ReLU(),
@@ -27,7 +28,7 @@ class CNNClassifier(torch.nn.Module):
             self.network = torch.nn.Sequential(*L)
             self.classifier = torch.nn.Linear(c, 1)
       
-     def forward(self, x):
+    def forward(self, x):
             # Compute the features\n",
             z = self.network(x)
             # Global average pooling\n",
