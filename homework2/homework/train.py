@@ -8,7 +8,7 @@ import os
 def train(args):
     from os import path
     model = CNNClassifier()
-    loss=torch.nn.CrossEntropyLoss()
+    lossFunction = torch.nn.CrossEntropyLoss()
     optimiz = torch.optim.SGD(model.parameters(), lr=0.01)
     train_logger, valid_logger = None, None
     if args.log_dir is not None:
@@ -17,12 +17,15 @@ def train(args):
 
     tl_load=load_data("data/train",batch_size=15)
    
-    for epoch in range(10):
+    for epoch in range(30):
         # running_loss=0.0
         for img, label in  tl_load:
 
           output=model.forward(img)
-          loss=loss(output,label)
+          #print(output)
+          #print(label)
+          loss= lossFunction(output,label)
+          #print(loss)
           optimiz.zero_grad()
             # running_loss += loss.item()
           loss.backward()
