@@ -15,12 +15,14 @@ def train(args):
     from os import path
     model = FCN()
     model=model.cuda();
+    
     train_logger, valid_logger = None, None
     if args.log_dir is not None:
         train_logger = tb.SummaryWriter(path.join(args.log_dir, 'train'), flush_secs=1)
         valid_logger = tb.SummaryWriter(path.join(args.log_dir, 'valid'), flush_secs=1)
 
     lossFunction = torch.nn.CrossEntropyLoss()
+    cm = ConfusionMatrix();
     optimiz = torch.optim.Adam(model.parameters())
     scheduler = torch.optim.lr_scheduler.StepLR(optimiz,step_size=30,gamma=0.1)
 
@@ -42,6 +44,7 @@ def train(args):
 
             output=model.forward(img.to(device))
             loss=lossFunction(output,label.to(device))
+            
             optimiz.zero_grad()
             # running_loss += loss.item()
             loss.backward()
@@ -49,14 +52,18 @@ def train(args):
       
         #scheduler.step()
       accuracies=[]
+      ioc_accuracy=[]
       for img, label in  valid_load:
              output=model.forward(img.to(device))
             #print(output)
              #print(label)
              #print(accuracy(output,label))
              accuracies.append(accuracy(output,label))
-      acc= np.mean(accuracies)   
+             ioc_accuracy.append(cm(output,label.to(device)))
+      acc= np.mean(accuracies)
+      ioc_acc=np.mean(ioc_accuracy)  
       scheduler.step(acc)
+      scheduler.step(ioc_acc)
        
       if acc>.92:
         save_model(model,str(acc))

@@ -53,67 +53,98 @@ class CNNClassifier(torch.nn.Module):
 class Block(torch.nn.Module):
       def __init__(self, n_input, n_output, stride=1): 
             super().__init__()   
-            print("Entering Block n_input=",n_input)
-            print("Entering Block n_output=",n_output)
+            #print("Entering Block n_input=",n_input)
+            #print("Entering Block n_output=",n_output)
             self.net = torch.nn.Sequential(
                     torch.nn.Conv2d(n_input, n_output, kernel_size=3, padding=1, stride=stride,bias=False),
-                    #torch.nn.BatchNorm2d(n_output), #if using after set baias to false
-                    #torch.nn.ReLU(),
-                    #torch.nn.Conv2d(n_output, n_output, kernel_size=4, padding=1),
+                    torch.nn.BatchNorm2d(n_output), #if using after set baias to false
+                    torch.nn.ReLU(),
+                    torch.nn.Conv2d(n_output, n_output, kernel_size=3, padding=1,bias=False),
                     torch.nn.ReLU()
                   )
            
-            print("Exit Block n_input=",n_input)
-            print("Exit Block n_output=",n_output)
+            #print("Exit Block n_input=",n_input)
+            #print("Exit Block n_output=",n_output)
       def forward(self, x):
-          print(x)
+          #print(x)
           return(self.net(x))
 
-
-
-
-class FCN(torch.nn.Module):
-  
-  class OutConv(torch.nn.Module):
+class OutConv(torch.nn.Module):
       def __init__(self, in_channels, out_channels):
-          super().__init__()
+          super(OutConv,self).__init__()
           self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1)
           print("OutConv")
 
       def forward(self, x):
           print("forward Outforward")
           return self.conv(x)
-   
-  def __init__(self, in_channels=3, out_channels=5, bilinear=False):
+          
+class Down(torch.nn.Module):
+    #Downscaling with maxpool then double conv
+
+      def __init__(self, in_channels, out_channels):
           super().__init__()
+          print("Down init",in_channels)
+          self.maxpool_conv = torch.nn.Sequential(
+              torch.nn.MaxPool2d(2,padding=1),
+              Block(in_channels, out_channels)
+          )
+
+      def forward(self, x):
+          #print("down forward")
+          return self.maxpool_conv(x)
+
+class Up(torch.nn.Module):
+      #Upscaling then double conv
+
+      def __init__(self, in_channels, out_channels):
+          super().__init__()
+          self.up = torch.nn.ConvTranspose2d(in_channels , in_channels // 2, kernel_size=2, stride=2)
+          self.conv = Block(in_channels, out_channels)
+
+
+      def forward(self, x1, x2):
+          x1 = self.up(x1)
+          diffY = x2.size()[2] - x1.size()[2]
+          diffX = x2.size()[3] - x1.size()[3]
+
+          x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
+                          diffY // 2, diffY - diffY // 2])
+          
+          x = torch.cat([x2, x1], dim=1)
+          return self.conv(x)
+      
+
+class FCN(torch.nn.Module):
+   
+  def __init__(self, in_channels=3, out_channels=5):
+          super(FCN,self).__init__()
           print("in_channels=",in_channels)      
           self.in_channels = in_channels
           self.out_channels = out_channels
-          self.inc = Block(in_channels,out_channels ) #first output
+          self.inc = Block(in_channels,64 ) #first output
           
-          #self.down1 = self.Down(32, 64)
-          #self.down2 = self.Down(64, 128)
+          self.down1 = Down(64, 128)
+          self.down2 = Down(128, 256) 
           
-         # factor = 2 if bilinear else 1
-        
-         # self.up1 = self.Up(128, 64 // factor, bilinear)
-          #self.up2 = self.Up(64, 3 , bilinear)
+          self.up1 = Up(256, 128)
+          self.up2 = Up(128, 64)
           
-          #print("main init here")
-          print("Main initout channel",out_channels)
-          #self.outc = self.OutConv(3, out_channels)
+         
+          #print("Main initout channel",out_channels)
+          self.outc = OutConv(64, out_channels)
 
   def forward(self, x):
       
       x1 = self.inc(x)
-      #x2 = self.down1(x1)
-      #x3 = self.down2(x2)
-      #x = self.up1(x3, x2)
-      #x = self.up2(x, x3)
-      print(x1)
-      print(" main forward")
-      #logits = self.outc(x1)
-      return x1    
+      x2 = self.down1(x1)
+      x3 = self.down2(x2)
+      x = self.up1(x3, x2)
+      x = self.up2(x, x1)
+      #print(x1)
+      #print(" main forward")
+      logits = self.outc(x)
+      return logits    
 
 
 
