@@ -141,7 +141,9 @@ class ConfusionMatrix(object):
 
 if __name__ == '__main__':
     dataset = DenseSuperTuxDataset('dense_data/train', transform=dense_transforms.Compose(
-        [dense_transforms.RandomHorizontalFlip(), dense_transforms.ToTensor()]))
+        [dense_transforms.RandomHorizontalFlip(),
+         dense_transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.2),
+         dense_transforms.ToTensor()]))
     from pylab import show, imshow, subplot, axis
 
     for i in range(15):

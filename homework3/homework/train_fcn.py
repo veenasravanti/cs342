@@ -24,10 +24,10 @@ def train(args):
     lossFunction = torch.nn.CrossEntropyLoss()
     cm = ConfusionMatrix();
     optimiz = torch.optim.Adam(model.parameters())
-    scheduler = torch.optim.lr_scheduler.StepLR(optimiz,step_size=30,gamma=0.1)
+    #scheduler = torch.optim.lr_scheduler.StepLR(optimiz,step_size=30,gamma=0.1)
 
-    tl_load=load_dense_data("data/train",batch_size=15)
-    valid_load=load_dense_data("data/valid",batch_size=15)
+    tl_load=load_dense_data("dense_data/train",batch_size=15,)
+    valid_load=load_dense_data("dense_data/valid",batch_size=15)
 
     """
     Your code here, modify your HW1 / HW2 code
@@ -41,9 +41,12 @@ def train(args):
       model.train()
       
       for img, label in  tl_load:
-
-            output=model.forward(img.to(device))
-            loss=lossFunction(output,label.to(device))
+            img=img.to(device)
+            label=label.to(device)
+            output=model.forward(img)
+            output=output.to(device)
+            label = label.type(torch.LongTensor).to(device)
+            loss=lossFunction(output,label)
             
             optimiz.zero_grad()
             # running_loss += loss.item()
@@ -51,22 +54,20 @@ def train(args):
             optimiz.step()
       
         #scheduler.step()
-      accuracies=[]
+      
       ioc_accuracy=[]
       for img, label in  valid_load:
-             output=model.forward(img.to(device))
-            #print(output)
-             #print(label)
-             #print(accuracy(output,label))
-             accuracies.append(accuracy(output,label))
-             ioc_accuracy.append(cm(output,label.to(device)))
-      acc= np.mean(accuracies)
-      ioc_acc=np.mean(ioc_accuracy)  
-      scheduler.step(acc)
-      scheduler.step(ioc_acc)
+             img=img.to(device)
+             label=label.to(device)
+             output=model.forward(img)
+             ioc_accuracy.append(cm.add(output.argmax(1),label))
+      
+      
+       print("epoch:",epoch:ioc_accuracy)
+      #scheduler.step(ioc_acc)
        
-      if acc>.92:
-        save_model(model,str(acc))
+      #if acc>.92:
+       # save_model(model,str(ioc_acc))
         #print("epoch", epoch ,"accuracies",acc)
 
       

@@ -73,10 +73,10 @@ class OutConv(torch.nn.Module):
       def __init__(self, in_channels, out_channels):
           super(OutConv,self).__init__()
           self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1)
-          print("OutConv")
+          
 
       def forward(self, x):
-          print("forward Outforward")
+          
           return self.conv(x)
           
 class Down(torch.nn.Module):
@@ -84,7 +84,7 @@ class Down(torch.nn.Module):
 
       def __init__(self, in_channels, out_channels):
           super().__init__()
-          print("Down init",in_channels)
+          
           self.maxpool_conv = torch.nn.Sequential(
               torch.nn.MaxPool2d(2,padding=1),
               Block(in_channels, out_channels)
@@ -119,7 +119,7 @@ class FCN(torch.nn.Module):
    
   def __init__(self, in_channels=3, out_channels=5):
           super(FCN,self).__init__()
-          print("in_channels=",in_channels)      
+               
           self.in_channels = in_channels
           self.out_channels = out_channels
           self.inc = Block(in_channels,64 ) #first output
