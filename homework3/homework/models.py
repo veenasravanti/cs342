@@ -66,18 +66,10 @@ class Block(torch.nn.Module):
             #print("Exit Block n_input=",n_input)
             #print("Exit Block n_output=",n_output)
       def forward(self, x):
-          #print(x)
           return(self.net(x))
 
-class OutConv(torch.nn.Module):
-      def __init__(self, in_channels, out_channels):
-          super(OutConv,self).__init__()
-          self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1)
-          
 
-      def forward(self, x):
-          
-          return self.conv(x)
+
           
 class Down(torch.nn.Module):
     #Downscaling with maxpool then double conv
@@ -93,6 +85,15 @@ class Down(torch.nn.Module):
       def forward(self, x):
           #print("down forward")
           return self.maxpool_conv(x)
+
+class OutConv(torch.nn.Module):
+      def __init__(self, in_channels, out_channels):
+          super(OutConv,self).__init__()
+          self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1)
+          
+
+      def forward(self, x): 
+          return self.conv(x)
 
 class Up(torch.nn.Module):
       #Upscaling then double conv
@@ -154,12 +155,12 @@ model_factory = {
 }
 
 
-def save_model(model):
+def save_model(model,str=''):
     from torch import save
     from os import path
     for n, m in model_factory.items():
         if isinstance(model, m):
-            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), '%s.th' % n))
+            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), str))
     raise ValueError("model type '%s' not supported!" % str(type(model)))
 
 

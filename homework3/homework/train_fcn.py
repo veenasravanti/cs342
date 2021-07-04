@@ -24,10 +24,12 @@ def train(args):
     lossFunction = torch.nn.CrossEntropyLoss()
     cm = ConfusionMatrix();
     optimiz = torch.optim.Adam(model.parameters())
-    #scheduler = torch.optim.lr_scheduler.StepLR(optimiz,step_size=30,gamma=0.1)
+    scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiz,'max')
+    scheduler2 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiz,'max')
 
-    tl_load=load_dense_data("dense_data/train",batch_size=15,)
-    valid_load=load_dense_data("dense_data/valid",batch_size=15)
+    tl_load = load_dense_data("dense_data/train",batch_size=15, transform = dense_transforms.Compose([dense_transforms.RandomHorizontalFlip(), dense_transforms.ColorJitter(), dense_transforms.ToTensor()]))
+    #tl_load=load_dense_data("dense_data/train",batch_size=15)
+    valid_load=load_dense_data("dense_data/valid",batch_size=15,transform = dense_transforms.Compose([dense_transforms.RandomHorizontalFlip(), dense_transforms.ColorJitter(), dense_transforms.ToTensor()]))
 
     """
     Your code here, modify your HW1 / HW2 code
@@ -53,25 +55,27 @@ def train(args):
             loss.backward()
             optimiz.step()
       
-        #scheduler.step()
+      #scheduler.step()
       
       ioc_accuracy=[]
       for img, label in  valid_load:
              img=img.to(device)
              label=label.to(device)
              output=model.forward(img)
-             ioc_accuracy.append(cm.add(output.argmax(1),label))
-      
-      
-       print("epoch:",epoch:ioc_accuracy)
-      #scheduler.step(ioc_acc)
+             cm.add(output.argmax(1),label)
+              
+      ioc_accuracy=cm.global_accuracy
+      ioc_acc1=cm.iou
+      print("epoch:",epoch,":",ioc_accuracy,"iou:",ioc_acc1)
+      scheduler1.step(ioc_accuracy)
+      scheduler2.step(ioc_acc1)
        
-      #if acc>.92:
-       # save_model(model,str(ioc_acc))
+      if ioc_accuracy>.78 and ioc_acc1>.55:
+        save_model(model,str(ioc_accuracy))
         #print("epoch", epoch ,"accuracies",acc)
 
       
-    save_model(model)
+    save_model(model,'')
     model.eval()
 
 def log(logger, imgs, lbls, logits, global_step):
