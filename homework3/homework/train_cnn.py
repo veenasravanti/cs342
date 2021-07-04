@@ -33,9 +33,8 @@ def train(args):
     #load data for valid and train
 
     
-    tl_load=load_data("data/train",batch_size=15)
-    valid_load=load_data('data/valid', batch_size=15)
-   
+    tl_load=load_data("data/train",batch_size=20)
+    valid_load=load_data('data/valid')
     for epoch in range(50):
         # running_loss=0.0
         model.train()
@@ -61,7 +60,6 @@ def train(args):
         scheduler.step(acc)
        
         if acc>.92:
-          print("yaay")
           save_model(model,str(acc))
         print("epoch", epoch ,"accuracies",acc)
 
