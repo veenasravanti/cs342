@@ -161,3 +161,7 @@ if __name__ == '__main__':
     for im, lbl in dataset:
         c += np.bincount(lbl.view(-1), minlength=len(DENSE_LABEL_NAMES))
     print(100 * c / np.sum(c))
+
+def accuracy(outputs, labels):
+    outputs_idx = outputs.max(1)[1].type_as(labels)
+    return outputs_idx.eq(labels).float().mean()
