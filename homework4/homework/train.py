@@ -10,6 +10,7 @@ import torch.utils.tensorboard as tb
 def train(args):
     from os import path
     model = Detector()
+    model=model.cuda();
     train_logger, valid_logger = None, None
     if args.log_dir is not None:
         train_logger = tb.SummaryWriter(path.join(args.log_dir, 'train'), flush_secs=1)
@@ -19,7 +20,52 @@ def train(args):
     Your code here, modify your HW3 code
     Hint: Use the log function below to debug and visualize your model
     """
-    raise NotImplementedError('train')
+    lossFunction = torch.nn.CrossEntropyLoss()
+    #cm = ConfusionMatrix();
+    optimiz = torch.optim.Adam(model.parameters())
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiz,'max')
+    
+
+    tl_load = load_detection_data("dense_data/train")
+    valid_load=load_detection_data("dense_data/valid")
+
+    for epoch in range(40):
+        
+      model.train()
+      
+      for img, label in  tl_load:
+            print("came inside ")
+            img=img.to(device)
+            label=label.to(device)
+            output=model.forward(img)
+            output=output.to(device)
+            label = label.type(torch.LongTensor).to(device)
+            loss=lossFunction(output,label)
+            
+            optimiz.zero_grad()
+            # running_loss += loss.item()
+            loss.backward()
+            optimiz.step()
+      
+      #scheduler.step()
+      
+      accuracy=[]
+      for img, label in  valid_load:
+             img=img.to(device)
+             label=label.to(device)
+             output=model.forward(img)
+             #cm.add(output.argmax(1),label)
+             accuracies.append(accuracy(output,label))
+      acc= np.mean(accuracies)   
+      
+      print("epoch:",epoch,":",acc)
+      scheduler.step(acc)
+      
+       
+      if acc>.78 and acc>.55:
+        save_model(model,str(acc))
+        #print("epoch", epoch ,"accuracies",acc)
+    
     save_model(model)
 
 

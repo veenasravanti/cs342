@@ -3,34 +3,124 @@ import torch.nn.functional as F
 
 
 def extract_peak(heatmap, max_pool_ks=7, min_score=-5, max_det=100):
-    """
-       Your code here.
-       Extract local maxima (peaks) in a 2d heatmap.
-       @heatmap: H x W heatmap containing peaks (similar to your training heatmap)
-       @max_pool_ks: Only return points that are larger than a max_pool_ks x max_pool_ks window around the point
-       @min_score: Only return peaks greater than min_score
-       @return: List of peaks [(score, cx, cy), ...], where cx, cy are the position of a peak and score is the
-                heatmap value at the peak. Return no more than max_det peaks per image
-    """
-    raise NotImplementedError('extract_peak')
+    mp=torch.nn.MaxPool2d(kernel_size=max_pool_ks,padding=max_pool_ks//2,stride=1)
+    X_max = mp(heatmap[None, None])[0,0]
+    #possible_det=heatmap - (X_max>heatmap).float()*100 # to match score and heatmap # score does not match heatmap
+    if max_det > X_max.numel():
+      max_det =X_max.numel()
+    heatmap_upd = (heatmap == X_max) * heatmap #  Replace all other values in heatmap to 0 except for max values 
+    output_tensor = torch.flatten(heatmap_upd) #selected index k out of range
+    score, location = torch.topk(output_tensor, max_det)  # should get the score and indices #use that to find cx and cy 
+    #print("score",score)
+    lst = []
+    for sc, loc in list(zip(score, location)):
+     #print(sc)
+     if sc > min_score:
+        cx = loc % heatmap.size(1)
+        cy = loc // heatmap.size(1)
+        lst.append([float(sc),cx,cy])
+    return lst
+
+
+
+class Block(torch.nn.Module):
+      def __init__(self, n_input, n_output, stride=1): 
+            super().__init__()   
+            #print("Entering Block n_input=",n_input)
+            #print("Entering Block n_output=",n_output)
+            self.net = torch.nn.Sequential(
+                    torch.nn.Conv2d(n_input, n_output, kernel_size=3, padding=1, stride=stride,bias=False),
+                    torch.nn.BatchNorm2d(n_output), #if using after set baias to false
+                    torch.nn.ReLU(),
+                    torch.nn.Conv2d(n_output, n_output, kernel_size=3, padding=1,bias=False),
+                    torch.nn.ReLU()
+                  )
+           
+            #print("Exit Block n_input=",n_input)
+            #print("Exit Block n_output=",n_output)
+      def forward(self, x):
+          return(self.net(x))
+
+
+
+          
+class Down(torch.nn.Module):
+    #Downscaling with maxpool then double conv
+
+      def __init__(self, in_channels, out_channels):
+          super().__init__()
+          
+          self.maxpool_conv = torch.nn.Sequential(
+              torch.nn.MaxPool2d(2,padding=1),
+              Block(in_channels, out_channels)
+          )
+
+      def forward(self, x):
+          #print("down forward")
+          return self.maxpool_conv(x)
+
+class OutConv(torch.nn.Module):
+      def __init__(self, in_channels, out_channels):
+          super(OutConv,self).__init__()
+          self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1)
+          
+
+      def forward(self, x): 
+          return self.conv(x)
+
+class Up(torch.nn.Module):
+      #Upscaling then double conv
+
+      def __init__(self, in_channels, out_channels):
+          super().__init__()
+          self.up = torch.nn.ConvTranspose2d(in_channels , in_channels // 2, kernel_size=2, stride=2)
+          self.conv = Block(in_channels, out_channels)
+
+
+      def forward(self, x1, x2):
+          x1 = self.up(x1)
+          diffY = x2.size()[2] - x1.size()[2]
+          diffX = x2.size()[3] - x1.size()[3]
+
+          x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
+                          diffY // 2, diffY - diffY // 2])
+          
+          x = torch.cat([x2, x1], dim=1)
+          return self.conv(x)
 
 
 class Detector(torch.nn.Module):
-    def __init__(self):
-        """
-           Your code here.
-           Setup your detection network
-        """
+    def __init__(self, in_channels=3, out_channels=5):
         super().__init__()
-        raise NotImplementedError('Detector.__init__')
+              
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.inc = Block(in_channels,64 ) #first output
+          
+        self.down1 = Down(64, 128)
+        self.down2 = Down(128, 256) 
+          
+        self.up1 = Up(256, 128)
+        self.up2 = Up(128, 64)
+        self.outc = OutConv(64, out_channels)
 
+       
     def forward(self, x):
-        """
-           Your code here.
+      """
+         Your code here.
            Implement a forward pass through the network, use forward for training,
            and detect for detection
-        """
-        raise NotImplementedError('Detector.forward')
+      """
+      x1 = self.inc(x)
+      x2 = self.down1(x1)
+      x3 = self.down2(x2)
+      x = self.up1(x3, x2)
+      x = self.up2(x, x1)
+      #print(x1)
+      #print(" main forward")
+      logits = self.outc(x)
+      return logits    
+
 
     def detect(self, image):
         """
