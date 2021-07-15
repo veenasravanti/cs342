@@ -26,8 +26,7 @@ def extract_peak(heatmap, max_pool_ks=7, min_score=-5, max_det=100):
 class Block(torch.nn.Module):
       def __init__(self, n_input, n_output, stride=1): 
             super().__init__()   
-            #print("Entering Block n_input=",n_input)
-            #print("Entering Block n_output=",n_output)
+
             self.net = torch.nn.Sequential(
                     torch.nn.Conv2d(n_input, n_output, kernel_size=3, padding=1, stride=stride,bias=False),
                     torch.nn.BatchNorm2d(n_output), #if using after set baias to false
@@ -90,7 +89,7 @@ class Up(torch.nn.Module):
 
 
 class Detector(torch.nn.Module):
-    def __init__(self, in_channels=3, out_channels=5):
+    def __init__(self, in_channels=3, out_channels=3):
         super().__init__()
               
         self.in_channels = in_channels
@@ -123,7 +122,7 @@ class Detector(torch.nn.Module):
 
 
     def detect(self, image):
-        """
+      """
            Your code here.
            Implement object detection here.
            @image: 3 x H x W image
@@ -134,8 +133,35 @@ class Detector(torch.nn.Module):
            Hint: Make sure to return three python lists of tuples of (float, int, int, float, float) and not a pytorch
                  scalar. Otherwise pytorch might keep a computation graph in the background and your program will run
                  out of memory.
-        """
-        raise NotImplementedError('Detector.detect')
+      """
+      heatmap = self.forward(image[None])
+      zero_arr=[0,0]
+
+      kart = list(extract_peak(heatmap[0,0],max_det = 30))
+      for i in kart:
+         i.append(float(0))
+         i.append(float(0))
+      kart = tuple(kart)
+        # print(kart[0])
+      
+      bomb = list(extract_peak(heatmap[0,1], max_det = 30))
+      for i in bomb:
+         i.append(float(0))
+         i.append(float(0))
+      bomb = tuple(bomb)
+        # print(len(bomb))
+
+      pickup = list(extract_peak(heatmap[0,2], max_det = 30))
+      for i in pickup:
+         i.append(float(0))
+         i.append(float(0))
+      pickup = tuple(pickup)
+        # print(len(pickup))
+        # output = [kart, bomb, pickup] # convert into float, int, int and then add two zeros in the final two positions
+      output = [kart, bomb, pickup]
+      return output
+
+       
 
 
 def save_model(model):

@@ -5,6 +5,7 @@ from .models import Detector, save_model
 from .utils import load_detection_data
 from . import dense_transforms
 import torch.utils.tensorboard as tb
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def train(args):
@@ -20,53 +21,57 @@ def train(args):
     Your code here, modify your HW3 code
     Hint: Use the log function below to debug and visualize your model
     """
-    lossFunction = torch.nn.CrossEntropyLoss()
-    #cm = ConfusionMatrix();
-    optimiz = torch.optim.Adam(model.parameters())
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiz,'max')
+    weights = [1/0.02929112, 1/0.0044619, 1/0.00411153]
+    positive_weights = torch.Tensor(weights)
+    lossFunction = torch.nn.BCEWithLogitsLoss(pos_weight = positive_weights[None, :, None, None] ).to(device)
+   
     
+    optimiz = torch.optim.Adam(model.parameters())
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiz,'min')
+    
+    #should use both dense_transforms.ToTensor() and dense_transforms.ToHeatmap()
+    tl_load = load_detection_data("dense_data/train",batch_size=15,transform =  dense_transforms.Compose([dense_transforms.RandomHorizontalFlip(), dense_transforms.ColorJitter(contrast=0.5, brightness=0.5, saturation=0.5, hue=0.5),dense_transforms.ToTensor(), dense_transforms.ToHeatmap()]))                             
+    valid_load = load_detection_data("dense_data/valid",batch_size=15,transform =  dense_transforms.Compose([dense_transforms.RandomHorizontalFlip(), dense_transforms.ColorJitter(contrast=0.5, brightness=0.5, saturation=0.5, hue=0.5),dense_transforms.ToTensor(), dense_transforms.ToHeatmap()]))                             
 
-    tl_load = load_detection_data("dense_data/train")
-    valid_load=load_detection_data("dense_data/valid")
-
-    for epoch in range(40):
+    for epoch in range(50):
         
       model.train()
       
-      for img, label in  tl_load:
-            print("came inside ")
+      for img,heatmap, size in  tl_load:
+            
             img=img.to(device)
-            label=label.to(device)
+            heatmap=heatmap.to(device)
             output=model.forward(img)
             output=output.to(device)
-            label = label.type(torch.LongTensor).to(device)
-            loss=lossFunction(output,label)
+            #label = label.type(torch.LongTensor).to(device)
+            loss=lossFunction(output,heatmap)
             
             optimiz.zero_grad()
             # running_loss += loss.item()
             loss.backward()
             optimiz.step()
+
+      print(f'Epoch {epoch}\t Training Loss: {loss/len(tl_load)}')
       
-      #scheduler.step()
-      
-      accuracy=[]
-      for img, label in  valid_load:
-             img=img.to(device)
-             label=label.to(device)
-             output=model.forward(img)
-             #cm.add(output.argmax(1),label)
-             accuracies.append(accuracy(output,label))
-      acc= np.mean(accuracies)   
-      
-      print("epoch:",epoch,":",acc)
-      scheduler.step(acc)
-      
-       
-      if acc>.78 and acc>.55:
-        save_model(model,str(acc))
-        #print("epoch", epoch ,"accuracies",acc)
-    
+
+      for img,heatmap, size in  valid_load:
+            
+            img=img.to(device)
+            heatmap=heatmap.to(device)
+            output=model.forward(img)
+            output=output.to(device)
+                      
+            optimiz.zero_grad()
+            # running_loss += loss.item()
+            optimiz.step()
+
+      print("epoch", epoch)
+      scheduler.step(loss)
+
+
+            
     save_model(model)
+    
 
 
 def log(logger, imgs, gt_det, det, global_step):
