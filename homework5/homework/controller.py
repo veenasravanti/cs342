@@ -9,7 +9,15 @@ def control(aim_point, current_vel):
     :return: a pystk.Action (set acceleration, brake, steer, drift)
     """
     action = pystk.Action()
-
+    while current_vel<=20:
+      action.acceleration = 0.75
+      current_vel = current_vel+action.acceleration
+    #for a in aim_point:
+    #print(aim_point[0])
+    action.steer = aim_point[0]
+    if abs(aim_point[0])>0.2:
+      action.brake = True
+      action.drift=True
     """
     Your code here
     Hint: Use action.acceleration (0..1) to change the velocity. Try targeting a target_velocity (e.g. 20).
