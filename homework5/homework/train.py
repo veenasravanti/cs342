@@ -15,17 +15,17 @@ def train(args):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5) 
 
     
     train_data = load_data('drive_data', num_workers=4, transform=dense_transforms.Compose([dense_transforms.RandomHorizontalFlip(), 
     dense_transforms.ColorJitter(contrast=0.5, brightness=0.5, saturation=0.5, hue=0.5),
     dense_transforms.ToTensor()]))
 
-    size_loss = torch.nn.MSELoss(reduction='none')
+    size_loss = torch.nn.L1Loss()
 
     global_step = 0
-    for epoch in range(25):
+    for epoch in range(120):
         model.train()
 
         for img, value in train_data:
